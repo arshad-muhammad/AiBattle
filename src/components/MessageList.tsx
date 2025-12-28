@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Message, MessageRole } from '../types';
-import { Bot, User, AlertCircle } from 'lucide-react';
+import { Bot, User, AlertCircle, Trophy } from 'lucide-react';
 
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  onVote?: (messageId: string, modelId: string) => void;
 }
 
-const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
+const MessageList: React.FC<MessageListProps> = ({ messages, isLoading, onVote }) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -54,7 +55,7 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
             {/* Model Responses */}
             {msg.role === MessageRole.MODEL && msg.modelResponses && (
                 <>
-                    {/* If there's only 1 response (Direct Mode), show it as standard vertical chat bubble */}
+                    {/* Direct Mode (Single Response) */}
                     {msg.modelResponses.length === 1 ? (
                         <div className="flex gap-2 md:gap-4 max-w-[95%] md:max-w-4xl">
                              <div className="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center shrink-0 border border-blue-500/30 text-blue-400">
@@ -85,23 +86,40 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
                              </div>
                         </div>
                     ) : (
-                        /* Battle Mode (Multiple responses) - Horizontal Scroll */
+                        /* Battle Mode (Multiple responses) */
                         <div className="w-full overflow-x-auto pb-4 pt-2 flex gap-4 snap-x px-1">
                             {msg.modelResponses.map((response) => (
                                 <div 
                                     key={response.modelId} 
-                                    className="min-w-[280px] max-w-[280px] md:min-w-[400px] md:max-w-[400px] shrink-0 bg-[#1a1a1a] border border-[#333] rounded-xl p-3 md:p-4 snap-start flex flex-col h-full"
+                                    className={`
+                                        min-w-[280px] max-w-[280px] md:min-w-[400px] md:max-w-[400px] shrink-0 
+                                        bg-[#1a1a1a] border rounded-xl p-3 md:p-4 snap-start flex flex-col h-full relative
+                                        ${response.isWinner ? 'border-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.1)]' : 'border-[#333]'}
+                                    `}
                                 >
+                                    {/* Winner Badge */}
+                                    {response.isWinner && (
+                                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-yellow-500/20 text-yellow-400 border border-yellow-500/50 px-3 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg backdrop-blur-sm">
+                                            <Trophy size={12} /> WINNER
+                                        </div>
+                                    )}
+
                                     <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#333]">
                                         <div className="w-6 h-6 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400">
                                             <Bot size={14} />
                                         </div>
-                                        <span className="font-medium text-sm text-gray-200 truncate" title={response.modelId}>
+                                        <span className="font-medium text-sm text-gray-200 truncate flex-1" title={response.modelId}>
                                             {response.displayName}
                                         </span>
+                                        {/* Latency Indicator */}
+                                        {response.latency && (
+                                            <span className="text-[10px] text-gray-500 font-mono">
+                                                {(response.latency / 1000).toFixed(2)}s
+                                            </span>
+                                        )}
                                     </div>
                                     
-                                    <div className="flex-1 text-sm text-gray-300 font-light">
+                                    <div className="flex-1 text-sm text-gray-300 font-light mb-2">
                                         {response.isLoading ? (
                                             <div className="space-y-2 animate-pulse opacity-50">
                                                 <div className="h-4 bg-gray-700 rounded w-3/4"></div>
@@ -119,6 +137,23 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
                                             </ReactMarkdown>
                                         )}
                                     </div>
+
+                                    {/* Vote Button */}
+                                    {!response.isLoading && !response.error && onVote && (
+                                        <button 
+                                            onClick={() => onVote(msg.id, response.modelId)}
+                                            className={`
+                                                mt-auto w-full py-1.5 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-2
+                                                ${response.isWinner 
+                                                    ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20' 
+                                                    : 'bg-[#222] text-gray-400 hover:bg-[#333] hover:text-gray-200'
+                                                }
+                                            `}
+                                        >
+                                            <Trophy size={14} />
+                                            {response.isWinner ? 'Winner' : 'Vote as Best'}
+                                        </button>
+                                    )}
                                 </div>
                             ))}
                         </div>

@@ -1,5 +1,5 @@
 {
-  "name": "LMArena Clone",
-  "description": "A dark-themed AI chat interface replicating the LMArena UI with Gemini integration.",
+  "name": "AiroLabs",
+  "description": "A dark-themed AI chat interface for battling and comparing AI models.",
   "requestFramePermissions": []
 }

@@ -9,6 +9,7 @@ interface SidebarProps {
   sessions: ChatSession[];
   currentSessionId: string | null;
   onSelectSession: (id: string) => void;
+  onShowLeaderboard: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -17,7 +18,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   toggleSidebar, 
   sessions, 
   currentSessionId, 
-  onSelectSession 
+  onSelectSession,
+  onShowLeaderboard
 }) => {
   return (
     <>
@@ -40,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Header */}
           <div className="h-14 flex items-center justify-between px-3">
             <button className="flex items-center gap-2 hover:bg-hoverGray p-2 rounded-lg text-sm font-semibold transition-colors flex-1 text-left text-gray-200">
-              <span>LMArena</span>
+              <span>AiroLabs</span>
               <ChevronDown size={14} className="text-gray-500 ml-auto" />
             </button>
             <button onClick={toggleSidebar} className="p-2 text-gray-400 hover:text-white hover:bg-hoverGray rounded-lg ml-1">
@@ -57,7 +59,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               <SquarePen size={18} />
               <span>New Chat</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-hoverGray hover:text-white rounded-lg transition-colors">
+            <button 
+              onClick={onShowLeaderboard}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-300 hover:bg-hoverGray hover:text-white rounded-lg transition-colors"
+            >
               <Trophy size={18} />
               <span>Leaderboard</span>
             </button>

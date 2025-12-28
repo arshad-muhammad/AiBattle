@@ -9,6 +9,8 @@ export interface ModelResponse {
   text: string;
   error?: string;
   isLoading?: boolean;
+  latency?: number; // ms
+  isWinner?: boolean; // User selected as best
 }
 
 export interface Message {
