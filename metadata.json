@@ -1,0 +1,5 @@
+{
+  "name": "LMArena Clone",
+  "description": "A dark-themed AI chat interface replicating the LMArena UI with Gemini integration.",
+  "requestFramePermissions": []
+}
