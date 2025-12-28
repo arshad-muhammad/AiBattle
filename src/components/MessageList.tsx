@@ -51,47 +51,82 @@ const MessageList: React.FC<MessageListProps> = ({ messages, isLoading }) => {
                 </div>
             )}
 
-            {/* Model Responses (Horizontal Scroll) */}
+            {/* Model Responses */}
             {msg.role === MessageRole.MODEL && msg.modelResponses && (
-                <div className="w-full overflow-x-auto pb-4 pt-2 flex gap-4 snap-x px-1">
-                    {msg.modelResponses.map((response) => (
-                        <div 
-                            key={response.modelId} 
-                            className="min-w-[280px] max-w-[280px] md:min-w-[400px] md:max-w-[400px] shrink-0 bg-[#1a1a1a] border border-[#333] rounded-xl p-3 md:p-4 snap-start flex flex-col h-full"
-                        >
-                            <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#333]">
-                                <div className="w-6 h-6 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400">
-                                    <Bot size={14} />
+                <>
+                    {/* If there's only 1 response (Direct Mode), show it as standard vertical chat bubble */}
+                    {msg.modelResponses.length === 1 ? (
+                        <div className="flex gap-2 md:gap-4 max-w-[95%] md:max-w-4xl">
+                             <div className="w-8 h-8 rounded-full bg-blue-900/50 flex items-center justify-center shrink-0 border border-blue-500/30 text-blue-400">
+                                <Bot size={16} />
+                             </div>
+                             <div className="flex-1 min-w-0">
+                                <div className="font-semibold text-sm mb-1 text-gray-300 flex items-center gap-2">
+                                    {msg.modelResponses[0].displayName}
                                 </div>
-                                <span className="font-medium text-sm text-gray-200 truncate" title={response.modelId}>
-                                    {response.displayName}
-                                </span>
-                            </div>
-                            
-                            <div className="flex-1 text-sm text-gray-300 font-light">
-                                {response.isLoading ? (
-                                    <div className="space-y-2 animate-pulse opacity-50">
-                                        <div className="h-4 bg-gray-700 rounded w-3/4"></div>
-                                        <div className="h-4 bg-gray-700 rounded w-1/2"></div>
-                                        <div className="h-4 bg-gray-700 rounded w-5/6"></div>
-                                    </div>
-                                ) : response.error ? (
-                                    <div className="text-red-400 flex items-start gap-2 text-xs bg-red-900/10 p-2 rounded">
-                                        <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                                        <span>{response.error}</span>
-                                    </div>
-                                ) : (
-                                    <ReactMarkdown components={markdownStyles}>
-                                        {response.text}
-                                    </ReactMarkdown>
-                                )}
-                            </div>
+                                <div className="text-textPrimary break-words text-sm md:text-base leading-relaxed">
+                                    {msg.modelResponses[0].isLoading ? (
+                                        <div className="flex gap-1 items-center h-6">
+                                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce"></div>
+                                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-75"></div>
+                                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-150"></div>
+                                        </div>
+                                    ) : msg.modelResponses[0].error ? (
+                                        <div className="text-red-400 flex items-center gap-2">
+                                            <AlertCircle size={14} />
+                                            {msg.modelResponses[0].error}
+                                        </div>
+                                    ) : (
+                                        <ReactMarkdown components={markdownStyles}>
+                                            {msg.modelResponses[0].text}
+                                        </ReactMarkdown>
+                                    )}
+                                </div>
+                             </div>
                         </div>
-                    ))}
-                </div>
+                    ) : (
+                        /* Battle Mode (Multiple responses) - Horizontal Scroll */
+                        <div className="w-full overflow-x-auto pb-4 pt-2 flex gap-4 snap-x px-1">
+                            {msg.modelResponses.map((response) => (
+                                <div 
+                                    key={response.modelId} 
+                                    className="min-w-[280px] max-w-[280px] md:min-w-[400px] md:max-w-[400px] shrink-0 bg-[#1a1a1a] border border-[#333] rounded-xl p-3 md:p-4 snap-start flex flex-col h-full"
+                                >
+                                    <div className="flex items-center gap-2 mb-3 pb-2 border-b border-[#333]">
+                                        <div className="w-6 h-6 rounded-full bg-blue-900/30 flex items-center justify-center text-blue-400">
+                                            <Bot size={14} />
+                                        </div>
+                                        <span className="font-medium text-sm text-gray-200 truncate" title={response.modelId}>
+                                            {response.displayName}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="flex-1 text-sm text-gray-300 font-light">
+                                        {response.isLoading ? (
+                                            <div className="space-y-2 animate-pulse opacity-50">
+                                                <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                                                <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                                                <div className="h-4 bg-gray-700 rounded w-5/6"></div>
+                                            </div>
+                                        ) : response.error ? (
+                                            <div className="text-red-400 flex items-start gap-2 text-xs bg-red-900/10 p-2 rounded">
+                                                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                                                <span>{response.error}</span>
+                                            </div>
+                                        ) : (
+                                            <ReactMarkdown components={markdownStyles}>
+                                                {response.text}
+                                            </ReactMarkdown>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
             
-            {/* Fallback for single text model message if needed */}
+            {/* Legacy Fallback */}
             {msg.role === MessageRole.MODEL && !msg.modelResponses && (
                 <div className="flex gap-4 max-w-3xl">
                      <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shrink-0">

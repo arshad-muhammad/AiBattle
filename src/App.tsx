@@ -8,26 +8,25 @@ import { Message, MessageRole, ModelResponse, ChatSession } from './types';
 import { BATTLE_MODELS, runGroqModel } from './services/groq';
 
 const App: React.FC = () => {
-  // Initialize sidebar closed on mobile, open on desktop
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isTyping, setIsTyping] = useState(false);
 
-  // Handle resize to auto-close/open sidebar if needed
+  // New states for Direct Chat
+  const [chatMode, setChatMode] = useState<'battle' | 'direct'>('battle');
+  const [selectedModelId, setSelectedModelId] = useState<string>(BATTLE_MODELS[0].id);
+
   useEffect(() => {
       const handleResize = () => {
-          if (window.innerWidth >= 768) {
-              // Optional: Auto-open on desktop? Let's leave user choice but ensure visibility logic works.
-          } else {
+          if (window.innerWidth < 768) {
               setSidebarOpen(false);
           }
       };
-      // We don't want to aggressively auto-close on every resize, just initial load mostly.
-      // But let's just leave the initial state.
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Load from LocalStorage on mount
   useEffect(() => {
     const savedSessions = localStorage.getItem('chat_sessions');
     if (savedSessions) {
@@ -43,7 +42,6 @@ const App: React.FC = () => {
     }
   }, []);
 
-  // Save to LocalStorage
   useEffect(() => {
       if (sessions.length > 0) {
         localStorage.setItem('chat_sessions', JSON.stringify(sessions));
@@ -103,12 +101,25 @@ const App: React.FC = () => {
     };
 
     // 2. Prepare Initial Model Message
-    const initialModelResponses: ModelResponse[] = BATTLE_MODELS.map(model => ({
-        modelId: model.id,
-        displayName: model.displayName,
-        text: '',
-        isLoading: true,
-    }));
+    let initialModelResponses: ModelResponse[] = [];
+
+    if (chatMode === 'battle') {
+        initialModelResponses = BATTLE_MODELS.map(model => ({
+            modelId: model.id,
+            displayName: model.displayName,
+            text: '',
+            isLoading: true,
+        }));
+    } else {
+        // Direct Mode
+        const selectedModel = BATTLE_MODELS.find(m => m.id === selectedModelId) || BATTLE_MODELS[0];
+        initialModelResponses = [{
+            modelId: selectedModel.id,
+            displayName: selectedModel.displayName,
+            text: '',
+            isLoading: true,
+        }];
+    }
 
     const modelMsg: Message = {
         id: modelMsgId,
@@ -130,43 +141,55 @@ const App: React.FC = () => {
 
     setIsTyping(true);
 
-    // 3. Fire requests in parallel
-    const promises = BATTLE_MODELS.map(async (model) => {
-        const result = await runGroqModel(model.id, text);
-        
-        setSessions(prev => prev.map(session => {
-            if (session.id === activeSessionId) {
-                return {
-                    ...session,
-                    messages: session.messages.map(msg => {
-                        if (msg.id === modelMsgId && msg.modelResponses) {
-                            return {
-                                ...msg,
-                                modelResponses: msg.modelResponses.map(resp => {
-                                    if (resp.modelId === model.id) {
-                                        return {
-                                            ...resp,
-                                            isLoading: false,
-                                            text: result.text || '',
-                                            error: result.error
-                                        };
-                                    }
-                                    return resp;
-                                })
-                            };
-                        }
-                        return msg;
-                    })
-                };
-            }
-            return session;
-        }));
-    });
+    // 3. Fire requests
+    if (chatMode === 'battle') {
+        // Parallel requests for all models
+        const promises = BATTLE_MODELS.map(async (model) => {
+            const result = await runGroqModel(model.id, text);
+            updateModelResponse(activeSessionId!, modelMsgId, model.id, result);
+        });
+        await Promise.allSettled(promises);
+    } else {
+        // Single request for selected model
+        // We still use runGroqModel which simulates the specific model persona
+        const result = await runGroqModel(selectedModelId, text);
+        updateModelResponse(activeSessionId!, modelMsgId, selectedModelId, result);
+    }
 
-    await Promise.allSettled(promises);
     setIsTyping(false);
 
-  }, [currentSessionId]);
+  }, [currentSessionId, chatMode, selectedModelId]);
+
+  // Helper to update state deep in the session structure
+  const updateModelResponse = (sessionId: string, msgId: string, modelId: string, result: { text?: string, error?: string }) => {
+      setSessions(prev => prev.map(session => {
+        if (session.id === sessionId) {
+            return {
+                ...session,
+                messages: session.messages.map(msg => {
+                    if (msg.id === msgId && msg.modelResponses) {
+                        return {
+                            ...msg,
+                            modelResponses: msg.modelResponses.map(resp => {
+                                if (resp.modelId === modelId) {
+                                    return {
+                                        ...resp,
+                                        isLoading: false,
+                                        text: result.text || '',
+                                        error: result.error
+                                    };
+                                }
+                                return resp;
+                            })
+                        };
+                    }
+                    return msg;
+                })
+            };
+        }
+        return session;
+    }));
+  };
 
   const currentMessages = getCurrentMessages();
 
@@ -182,7 +205,14 @@ const App: React.FC = () => {
       />
       
       <div className="flex flex-col flex-1 h-full min-w-0 relative">
-        <Header sidebarOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
+        <Header 
+            sidebarOpen={sidebarOpen} 
+            toggleSidebar={toggleSidebar} 
+            chatMode={chatMode}
+            setChatMode={setChatMode}
+            selectedModelId={selectedModelId}
+            setSelectedModelId={setSelectedModelId}
+        />
         
         {/* Main Content */}
         <div className="flex-1 flex flex-col relative overflow-hidden">
