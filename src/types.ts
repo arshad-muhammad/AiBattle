@@ -3,11 +3,20 @@ export enum MessageRole {
   MODEL = 'model',
 }
 
+export interface ModelResponse {
+  modelId: string;
+  displayName: string; // Short name for UI
+  text: string;
+  error?: string;
+  isLoading?: boolean;
+}
+
 export interface Message {
   id: string;
   role: MessageRole;
   text: string;
   timestamp: number;
+  modelResponses?: ModelResponse[];
 }
 
 export interface ChatSession {
